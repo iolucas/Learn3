@@ -162,3 +162,5 @@ each node means something (course, project etc)
 things like about.me and navigation like google maps
 
 http://mylearnpath.com/
+
+the owner will create his graph and save the positions that will render later

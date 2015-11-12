@@ -7,70 +7,51 @@ html, body {
 }
 
 body {
-    background-color: #222;
-    height: 100%;
+    background-color: #0A091A;
+    /*background: linear-gradient(blue, #eee);
+    background: linear-gradient(#000, rgb(0,0,128));*/
+    background-color: rgb(200,200,200);
+    position: fixed; 
 }
 
-div#logo {
-    /*background-color: #333;*/
-    background: linear-gradient(45deg, #333 65%, #444 0%, #444 70%, #555 0%);
-    height: 100px;
-    color: #fff;
-    font-size: 30px;
-    line-height: 100px;
-    padding-left: 10px;
+.mainNode {
+    fill: "yellow";
 }
 
-#side-menu {
+.childNode {
+    fill: "green";
+}
+
+#mainContent {
+    height: 500px;
     width: 300px;
-    float:left;
-}
-
-.side-menu-but {
-    color: #fff;
-    padding-left: 30px;
-    line-height: 60px;
-    font-size: 20px;
-    border-bottom: 1px solid #333;
-    cursor: pointer;
-}
-
-#files {
-    display: none;
-}
-
-.side-menu-but:hover {
-    background-color: #777;
-}
-
-#general-content {
-    margin-left: 300px;
-    margin-bottom: 30px;
-    min-height: calc(100% - 30px);
-    background-color: #f0f0f0;
-}
-
-#score-menu {
-    border-radius: 10px;
-    background-color: rgba(200,200,255,.95);
-    height: 150px;
-    width: calc(100% - 320px);
-    position: fixed;
-    left: 310px;
     top: 10px;
-    /*box-shadow: 0px 0px 2px rgba(0,0,0,.5);*/
+    left: 10px;
+
+    position: absolute;
+
+    background-color: rgba(243,243,244, 0.7);
+
+    border-radius: 20px;
+    padding: 20px;
+    font-size: 20px;
+    color: #111;
 }
 
-#score-page {
-    /*padding-top: 160px;*/
-    text-align: center; 
+#loginSpace {
+    position: absolute; 
+    top: 5px;       
+    right: 5px;
+    background-color: rgba(243,243,244, 0.7);
+    border-radius: 5px;
+    height: 50px;
+    width: 200px;
 }
 
-/*svg {
-    cursor: pointer;
+#footDiv {
+    position: absolute;
+    color: rgba(0,0,0,.5);
+    right: 10px;
+    bottom: 10px;
+    font-size: 20px;
 }
-            
-svg:hover {
-    -webkit-filter: drop-shadow( -0px -0px 3px #000 );
-    filter: drop-shadow( -0px -0px 0px #000 ); // Same syntax as box-shadow
-}*/
