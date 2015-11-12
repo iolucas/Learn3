@@ -1,0 +1,76 @@
+@import url(https://fonts.googleapis.com/css?family=Ubuntu);
+
+html, body {
+    margin: 0;
+    font-family: "Ubuntu";
+    height: 100%;
+}
+
+body {
+    background-color: #222;
+    height: 100%;
+}
+
+div#logo {
+    /*background-color: #333;*/
+    background: linear-gradient(45deg, #333 65%, #444 0%, #444 70%, #555 0%);
+    height: 100px;
+    color: #fff;
+    font-size: 30px;
+    line-height: 100px;
+    padding-left: 10px;
+}
+
+#side-menu {
+    width: 300px;
+    float:left;
+}
+
+.side-menu-but {
+    color: #fff;
+    padding-left: 30px;
+    line-height: 60px;
+    font-size: 20px;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+}
+
+#files {
+    display: none;
+}
+
+.side-menu-but:hover {
+    background-color: #777;
+}
+
+#general-content {
+    margin-left: 300px;
+    margin-bottom: 30px;
+    min-height: calc(100% - 30px);
+    background-color: #f0f0f0;
+}
+
+#score-menu {
+    border-radius: 10px;
+    background-color: rgba(200,200,255,.95);
+    height: 150px;
+    width: calc(100% - 320px);
+    position: fixed;
+    left: 310px;
+    top: 10px;
+    /*box-shadow: 0px 0px 2px rgba(0,0,0,.5);*/
+}
+
+#score-page {
+    /*padding-top: 160px;*/
+    text-align: center; 
+}
+
+/*svg {
+    cursor: pointer;
+}
+            
+svg:hover {
+    -webkit-filter: drop-shadow( -0px -0px 3px #000 );
+    filter: drop-shadow( -0px -0px 0px #000 ); // Same syntax as box-shadow
+}*/
