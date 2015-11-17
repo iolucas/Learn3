@@ -1,0 +1,13 @@
+@import url(https://fonts.googleapis.com/css?family=Ubuntu);
+
+html, body {
+    margin: 0;
+    font-family: "Ubuntu";
+    height: 100%;
+}
+
+body {
+    /*background-color: #0A091A;
+    background-color: rgb(200,200,200);
+    position: fixed; */
+}
