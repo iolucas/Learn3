@@ -8,11 +8,15 @@ var svgContainer = d3.select("#svgContainer")
 
 var graphContainer = svgContainer.append("g");
 
+var graphContPos = [0,0];
+
+
 //Must find way to fix bug of infinite drag positions
 var zoomBehavior = d3.behavior.zoom()
 	.scaleExtent([0.1, 1])
 	.on("zoom", function(z) {
 		graphContainer.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+		graphContPos = d3.event.translate;
 	});
 
 //Function to refresh the screen size
@@ -46,31 +50,41 @@ var dataCollection = [
 		id: 0,
 		name: "Math",
 		color: "#55f",
-		x: 400,
+		x: 350,
 		y: 20,
 		links: [
-			{ targetId: 1 },
-			{ targetId: 2 }
+			//{ targetId: 1 },
+			//{ targetId: 2 }
 		]
 	},
 	{
 		id: 1,
-		name: "Portuguese",
+		name: "Programming",
 		color: "#5f5",
-		x: 700,
+		x: 350,
 		y: 120,
 		links: [
-			{ targetId: 2 }
+			//{ targetId: 2 }
 		]
 	},
 	{
 		id: 2,
-		name: "Science",
+		name: "Design",
 		color: "#f55",
 		inputs: 1,
 		outputs: 1,
-		x: 1000,
+		x: 350,
 		y: 220,
+		links: []
+	},
+	{
+		id: 3,
+		name: "Music",
+		color: "#888",
+		inputs: 1,
+		outputs: 1,
+		x: 350,
+		y: 320,
 		links: []
 	}
 ];
@@ -103,21 +117,29 @@ var skillNode = graphContainer.selectAll(".skill-node").data(dataCollection).ent
 
 		return "translate(" + d.x + " " + d.y +")";
 
-	}).call(drag).on("click", function(d){
-		console.log(d);
+	})
+	//.call(drag)
+	.on("click", function(d){
+		//console.log(d);
 
 		d3.selectAll(".skill-dialog").remove();
+
+		var darkScreen = d3.select("body").append("div")
+			.attr("class", "dark-screen");
+
+		darkScreen.transition()
+			.style("opacity", 1);
+
 
 		var skillDialog = d3.select("body").append("div")
 			.attr("class", "skill-dialog")
 			.style("width", d.containerWidth + "px")
 			.style("height", d.containerHeight + "px")
-			.style("top", d.y + "px")
-			.style("left", d.x + "px")
+			.style("top", d.y + graphContPos[1] + "px")
+			.style("left", d.x + graphContPos[0] + "px")
 			.style("background-color", d.color)
-			.style("opacity", 0);
 
-		skillDialog.transition(500)
+		skillDialog.transition()
 			.style("width", 500 + "px")
 			.style("height", 500 + "px")
 			.style("top", 50 + "px")
@@ -126,19 +148,24 @@ var skillNode = graphContainer.selectAll(".skill-node").data(dataCollection).ent
 			.style("opacity", 1);
 
 		skillDialog.on("click", function() {
-			skillDialog.transition(500)
+			skillDialog.transition()
 				.style("width", d.containerWidth + "px")
 				.style("height", d.containerHeight + "px")
-				.style("top", d.y + "px")
-				.style("left", d.x + "px")
+				.style("top", d.y + graphContPos[1] + "px")
+				.style("left", d.x + graphContPos[0] + "px")
 				.style("background-color", d.color)
 				.style("opacity", 0)
 				.each("end", function() {
 					skillDialog.remove();
+				});	
 
-				});			
+			darkScreen.transition()
+				.style("opacity", 0)
+				.each("end", function() {
+					darkScreen.remove();
+				});	
+
 		});
-
 
 	});
 	
