@@ -1,13 +1,34 @@
-var width = 900;
-var height = 1800;
-
-
 var svgContainer = d3.select("#svgContainer")
-	.attr("height", width)
-	.attr("width", height)
-	.style("background-color", "#ddd");
+	.on("mousedown", function() {
+		d3.select(this).style("cursor", "move");		
+	})
+	.on("mouseup", function() {
+		d3.select(this).style("cursor", "");		
+	});
 
-//var graphContainer = svgContainer.append("g");
+var graphContainer = svgContainer.append("g");
+
+//Must find way to fix bug of infinite drag positions
+var zoomBehavior = d3.behavior.zoom()
+	.scaleExtent([0.1, 1])
+	.on("zoom", function(z) {
+		graphContainer.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+	});
+
+//Function to refresh the screen size
+var refreshScreenSize = function() {
+	svgContainer.attr("height", window.innerHeight)
+		.attr("width", window.innerWidth);
+
+	zoomBehavior.size([window.innerWidth, window.innerHeight]);
+}
+
+window.addEventListener("resize", refreshScreenSize);
+window.addEventListener("load", refreshScreenSize);
+
+//svgContainer.call(zoomBehavior);
+
+
 
 
 var drag = d3.behavior.drag()
@@ -25,7 +46,7 @@ var dataCollection = [
 		id: 0,
 		name: "Math",
 		color: "#55f",
-		x: 100,
+		x: 400,
 		y: 20,
 		links: [
 			{ targetId: 1 },
@@ -36,7 +57,7 @@ var dataCollection = [
 		id: 1,
 		name: "Portuguese",
 		color: "#5f5",
-		x: 300,
+		x: 700,
 		y: 120,
 		links: [
 			{ targetId: 2 }
@@ -48,7 +69,7 @@ var dataCollection = [
 		color: "#f55",
 		inputs: 1,
 		outputs: 1,
-		x: 500,
+		x: 1000,
 		y: 220,
 		links: []
 	}
@@ -67,7 +88,7 @@ dataCollection.forEach(function(node, index) {
 
 
 
-var skillNode = svgContainer.selectAll(".skill-node").data(dataCollection).enter()
+var skillNode = graphContainer.selectAll(".skill-node").data(dataCollection).enter()
 	.append("g")
 	.attr("id", function(d) {
 		return "skill-node-" + d.id;
@@ -82,7 +103,44 @@ var skillNode = svgContainer.selectAll(".skill-node").data(dataCollection).enter
 
 		return "translate(" + d.x + " " + d.y +")";
 
-	}).call(drag);
+	}).call(drag).on("click", function(d){
+		console.log(d);
+
+		d3.selectAll(".skill-dialog").remove();
+
+		var skillDialog = d3.select("body").append("div")
+			.attr("class", "skill-dialog")
+			.style("width", d.containerWidth + "px")
+			.style("height", d.containerHeight + "px")
+			.style("top", d.y + "px")
+			.style("left", d.x + "px")
+			.style("background-color", d.color)
+			.style("opacity", 0);
+
+		skillDialog.transition(500)
+			.style("width", 500 + "px")
+			.style("height", 500 + "px")
+			.style("top", 50 + "px")
+			.style("left", window.innerWidth / 2 - 250 + "px")
+			//.style("background-color", "#fff")
+			.style("opacity", 1);
+
+		skillDialog.on("click", function() {
+			skillDialog.transition(500)
+				.style("width", d.containerWidth + "px")
+				.style("height", d.containerHeight + "px")
+				.style("top", d.y + "px")
+				.style("left", d.x + "px")
+				.style("background-color", d.color)
+				.style("opacity", 0)
+				.each("end", function() {
+					skillDialog.remove();
+
+				});			
+		});
+
+
+	});
 	
 var skillNodeContainer = skillNode.append("rect")
 	.attr("class", "skill-node-container")
@@ -188,12 +246,13 @@ skillNode.each(function(d) {
 		var linkPath = createLink({ source: linkSource, target: linkTarget });
 
 
-		svgContainer.insert("path", ":first-child")
+		var nodeLink = graphContainer.insert("path", ":first-child")
 			.attr("class", "skill-link")
 			.attr("d", linkPath)
 			.attr("fill", "none")
 			.attr("stroke", "#000")
 			.attr("stroke-width", 2);
+
 	});
 
 });
