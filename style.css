@@ -7,51 +7,7 @@ html, body {
 }
 
 body {
-    background-color: #0A091A;
-    /*background: linear-gradient(blue, #eee);
-    background: linear-gradient(#000, rgb(0,0,128));*/
+    /*background-color: #0A091A;
     background-color: rgb(200,200,200);
-    position: fixed; 
-}
-
-.mainNode {
-    fill: "yellow";
-}
-
-.childNode {
-    fill: "green";
-}
-
-#mainContent {
-    height: 500px;
-    width: 300px;
-    top: 10px;
-    left: 10px;
-
-    position: absolute;
-
-    background-color: rgba(243,243,244, 0.7);
-
-    border-radius: 20px;
-    padding: 20px;
-    font-size: 20px;
-    color: #111;
-}
-
-#loginSpace {
-    position: absolute; 
-    top: 5px;       
-    right: 5px;
-    background-color: rgba(243,243,244, 0.7);
-    border-radius: 5px;
-    height: 50px;
-    width: 200px;
-}
-
-#footDiv {
-    position: absolute;
-    color: rgba(0,0,0,.5);
-    right: 10px;
-    bottom: 10px;
-    font-size: 20px;
+    position: fixed; */
 }

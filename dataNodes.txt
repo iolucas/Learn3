@@ -1,7 +1,0 @@
-name
-Math
-Physics
-Programming
-C
-C++
-JavaScript
