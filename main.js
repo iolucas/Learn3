@@ -44,34 +44,13 @@ svgContainer.call(zoomBehavior);
 		d3.select(this).attr("transform", "translate(" + d.x + " " + d.y + ")");	
 	});*/
 
-d3.csv("userdata.csv", function(dataCollection) {
-
-	//console.log(dataCollection);
-
-	/*var data123 = []
-
-	dataCollection.forEach(function(data) {
-		//console.log(data);
-
-		if(data123.indexOf(data.source) == -1)
-			data123.push(data.source);
-		
-		if(data123.indexOf(data.target) == -1)
-			data123.push(data.target); 	
+//Create csv parser to avoid some caracters crash
 
 
+var csvParser = d3.dsv(",", "text/plain; charset=ISO-8859-1");
 
-	});
+csvParser("userdata.csv", function(dataCollection) {
 
-	data123.forEach(function(dataElem) {
-		var divElem = document.createElement("div");
-		divElem.innerHTML = dataElem;
-
-		document.body.appendChild(divElem);
-	});
-
-
-	return;*/
 
 	var nodeOffset = 0;
 
@@ -83,6 +62,135 @@ d3.csv("userdata.csv", function(dataCollection) {
 		});
 
 	});*/
+
+	//Function to open the skill dialog modal
+	var openSkillModal = function(d) {
+		console.log(d);
+
+		var transitionDuration = 500;
+
+		//Dialog Modal Size
+		var dialogSize = [1200,800];
+
+		//Set Dark Screen
+		var darkScreen = d3.select("body").append("div")
+			.attr("class", "dark-screen");
+
+		//Set Dialog Modal
+		var skillDialog = d3.select("body").append("div")
+			.attr("class", "skill-dialog")
+			.style("width", d.containerWidth + "px")
+			.style("height", d.containerHeight + "px")
+			.style("top", d.y + graphContPos[1] + "px")
+			.style("left", d.x + graphContPos[0] + "px");
+
+		//Function to close the skill modal smoothly
+		var closeSkillModal = function() {
+			skillDialog.transition().duration(transitionDuration)
+				.style("width", d.containerWidth + "px")
+				.style("height", d.containerHeight + "px")
+				.style("top", d.y + graphContPos[1] + "px")
+				.style("left", d.x + graphContPos[0] + "px")
+				.style("background-color", d.color)
+				.style("opacity", 0)
+				.remove();	//Remove the skill dialog
+
+
+			darkScreen.transition().duration(transitionDuration)
+				.style("opacity", 0)
+				.remove();
+			
+			//Ensure all dark screen are removed
+			//d3.selectAll(".dark-screen").remove();
+
+			//Ensure all skill-dialog are removed
+			//d3.selectAll(".skill-dialog").remove();
+		}
+
+
+		//Set Dialog Modal Upper Bar and Close Button
+		skillDialog.append("div")
+			.attr("class", "skill-dialog-top")
+			.style("background-color", d.color)
+			.append("span")
+			.attr("class", "skill-dialog-close-button")
+			.text("x")
+			.on("click", closeSkillModal);
+
+		//Set skill dialog data
+		skillDialog.append("div")
+			.attr("class", "skill-dialog-title")
+			.text(d.name);
+
+
+		//Function to set the skill modal description
+		var setDescription = function() {
+
+			skillDialog.append("div")
+				.attr("class", "skill-dialog-description")
+				.html(d.description);
+		}
+
+
+		//Check if the description exists
+		if(d.description) {
+			//If so, set it
+			setDescription();	
+		} else if(d.wikipediaTitle) {	
+		//if not, check if we got one ref from wikipedia and attempt to get the desc from there
+			var reqUrl = "https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro=&explaintext=&titles=" + d.wikipediaTitle;
+
+			$.ajax({ 
+				type: "GET",
+				dataType: "jsonp",
+				url: reqUrl,
+				success: function(reqData){
+					//If there data is not valid, return
+					if(!reqData.query.pages)
+						return;
+
+					for(var prop in reqData.query.pages) {
+						//If the extract data is valid, set it as the description
+						var queryText = reqData.query.pages[prop].extract,
+							queryMaxLength = 800;
+
+						if(queryText) {
+							//If the query text is too long, trunc it
+							if(queryText.length > queryMaxLength)
+								queryText = queryText.substr(0,queryMaxLength) + "...";
+
+							//Add the wikipedia ref
+							queryText += " <a target='_blank' href='https://en.wikipedia.org/wiki/" + d.wikipediaTitle + "'>Read More</a>";
+
+							d.description = queryText;
+							setDescription();
+							break;
+						}
+					}
+
+				}
+			});
+		}
+
+
+
+
+
+
+		//Show dark screen smoothly
+		darkScreen.transition().duration(transitionDuration)
+			.style("opacity", 1);
+
+		//Show modal smoothly
+		skillDialog.transition().duration(transitionDuration)
+			.style("width", dialogSize[0] + "px")
+			.style("height", dialogSize[1] + "px")
+			.style("top", 50 + "px")
+			.style("left", (window.innerWidth - dialogSize[0]) / 2  + "px")
+			.style("opacity", 1);
+
+	}
+
 
 
 	var skillNode = graphContainer.selectAll(".skill-node").data(dataCollection).enter()
@@ -105,57 +213,7 @@ d3.csv("userdata.csv", function(dataCollection) {
 
 		})
 		//.call(drag)
-		.on("click", function(d){
-			//console.log(d);
-
-			d3.selectAll(".skill-dialog").remove();
-
-			var darkScreen = d3.select("body").append("div")
-				.attr("class", "dark-screen");
-
-			darkScreen.transition()
-				.style("opacity", 1);
-
-				create white modal with top with the node color and set the modal content according to the userdata csv
-
-
-			var skillDialog = d3.select("body").append("div")
-				.attr("class", "skill-dialog")
-				.style("width", d.containerWidth + "px")
-				.style("height", d.containerHeight + "px")
-				.style("top", d.y + graphContPos[1] + "px")
-				.style("left", d.x + graphContPos[0] + "px");
-				//.style("background-color", d.color)
-
-			skillDialog.transition()
-				.style("width", 500 + "px")
-				.style("height", 500 + "px")
-				.style("top", 50 + "px")
-				.style("left", window.innerWidth / 2 - 250 + "px")
-				//.style("background-color", "#fff")
-				.style("opacity", 1);
-
-			skillDialog.on("click", function() {
-				skillDialog.transition()
-					.style("width", d.containerWidth + "px")
-					.style("height", d.containerHeight + "px")
-					.style("top", d.y + graphContPos[1] + "px")
-					.style("left", d.x + graphContPos[0] + "px")
-					.style("background-color", d.color)
-					.style("opacity", 0)
-					.each("end", function() {
-						skillDialog.remove();
-					});	
-
-				darkScreen.transition()
-					.style("opacity", 0)
-					.each("end", function() {
-						darkScreen.remove();
-					});	
-
-			});
-
-		});
+		.on("click", openSkillModal);
 		
 	var skillNodeContainer = skillNode.append("rect")
 		.attr("class", "skill-node-container")
@@ -275,140 +333,6 @@ d3.csv("userdata.csv", function(dataCollection) {
 
 });
 
-/*
-var dataCollection = [
-	{
-		id: 0,
-		name: "Math",
-		color: "#55f",
-		x: 350,
-		y: 20,
-		links: [
-			{ targetId: 4 },
-			{ targetId: 5 },
-			{ targetId: 6 },
-			{ targetId: 7 }
-		]
-	},
-	{
-		id: 1,
-		name: "Programming",
-		color: "#5f5",
-		x: 350,
-		y: 120,
-		links: [
-			//{ targetId: 2 }
-		]
-	},
-	{
-		id: 2,
-		name: "Design",
-		color: "#f55",
-		inputs: 1,
-		outputs: 1,
-		x: 350,
-		y: 220,
-		links: []
-	},
-	{
-		id: 3,
-		name: "Music",
-		color: "#888",
-		inputs: 1,
-		outputs: 1,
-		x: 350,
-		y: 320,
-		links: []
-	},
-	{
-		id: 4,
-		name: "Statistics",
-		color: "#888",
-		inputs: 1,
-		outputs: 1,
-		x: 650,
-		y: 20,
-		links: []
-	},
-	{
-		id: 5,
-		name: "Economics",
-		color: "#888",
-		inputs: 1,
-		outputs: 1,
-		x: 650,
-		y: 80,
-		links: []
-	},
-	{
-		id: 6,
-		name: "Calculus",
-		color: "#888",
-		inputs: 1,
-		outputs: 1,
-		x: 650,
-		y: 140,
-		links: []
-	},
-	{
-		id: 7,
-		name: "Phisics",
-		color: "#888",
-		inputs: 1,
-		outputs: 1,
-		x: 650,
-		y: 200,
-		links: []
-	}
-];*/
 
-
-
-
-
-
-
-
-
-//Open file and execute main function
-//d3.csv("dataNodes.txt", dataOpened);
-
-
-function dataOpened(dataNodes) {
-
-	var nodes = graphContainer.selectAll(".node-rect").data(dataNodes).enter()
-		.append("g")
-		.attr("class", "node-rect")
-		.attr("transform", function(d) {
-			d.x = 0;
-			d.y = 0;
-			return "translate(0 0)";
-		})
-		.call(drag);
-
-	nodes.append("rect")
-		.attr("class", "node-rect")
-		.attr("fill", "#eee")
-		.attr("rx", "5")
-		.attr("stroke", "#222")
-		.attr("stroke-width", 2)
-		.attr("width", 120)
-		.attr("height", 40);
-
-	nodes.append("text")
-		.attr("fill", "#222")
-		.attr("font-size", 25)
-		.text(function(d) { return d.name; })
-		.attr("x", function(d) {
-			return (120 - this.getBBox().width) / 2;
-		})
-		.attr("y", function(d) {
-			var thisBox = this.getBBox(); 
-			return thisBox.height;
-		});
-			
-	
-
-}
 
 
