@@ -103,6 +103,7 @@ div#logo {
 	border: 1px solid #000;
 	position: absolute;
 	opacity: 0;
+	background-color: #fff;
 }
 
 .dark-screen {
@@ -113,4 +114,8 @@ div#logo {
 	top: 0;
 	left: 0;
 	opacity: 0;
+}
+
+.skill-node {
+	cursor: pointer;
 }
