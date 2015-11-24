@@ -10,6 +10,13 @@ var graphContainer = svgContainer.append("g");
 
 var graphContPos = [0,0];
 
+//Dialog Modal Size
+var dialogSize = [1200,800];
+
+var NODE_DRAG = false;
+
+var SCREEN_DRAG = true;
+
 
 //Must find way to fix bug of infinite drag positions
 var zoomBehavior = d3.behavior.zoom()
@@ -25,52 +32,76 @@ var refreshScreenSize = function() {
 		.attr("width", window.innerWidth);
 
 	zoomBehavior.size([window.innerWidth, window.innerHeight]);
+
+	d3.selectAll(".skill-dialog")
+		.style("top", 50 + "px")
+		.style("left", (window.innerWidth - dialogSize[0]) / 2  + "px")
 }
 
 window.addEventListener("resize", refreshScreenSize);
 window.addEventListener("load", refreshScreenSize);
 
-svgContainer.call(zoomBehavior);
+if(SCREEN_DRAG)
+	svgContainer.call(zoomBehavior);
 
 
-
-
-/*var drag = d3.behavior.drag()
+var drag = d3.behavior.drag()
 	.origin(function(d) { return d; })
 	.on("drag", function(d) {
 		d.x = d3.event.x < 1 ? 1 : d3.event.x;
 		d.y = d3.event.y < 1 ? 1 : d3.event.y;
 
 		d3.select(this).attr("transform", "translate(" + d.x + " " + d.y + ")");	
-	});*/
+	});
 
 //Create csv parser to avoid some caracters crash
 
 
 var csvParser = d3.dsv(",", "text/plain; charset=ISO-8859-1");
 
-csvParser("userdata.csv", function(dataCollection) {
+csvParser("userdata.csv", function(nodes) {
 
+	//console.log(nodes);
 
 	var nodeOffset = 0;
 
-	//Set outputs references
-	/*dataCollection.forEach(function(node, index) {
+	//Populate nodes links with target references
+	for(var i = 0; i < nodes.length; i++) {
+		if(!nodes[i].connections)
+			continue;
 
-		node.links.forEach(function(link) {
-			link.targetNode = dataCollection[link.targetId];
-		});
+		//Create a links array on the node
+		nodes[i].links = [];
 
-	});*/
+		//Get the targets links
+		var targets = nodes[i].connections.split(";");
+
+		nodes[i].baseSkills = targets;
+		
+		//Iterate thru the links
+		for(var j = 0; j < targets.length; j++) {
+			var targetName = targets[j];
+
+			//Iterate thru all the nodes to find the reference for the given link
+			for(var k = 0; k < nodes.length; k++) {
+				//If the name doesn't match, continue next iteration
+				if(nodes[k].name != targetName)
+					continue;
+
+				//If the name matchs, push the current node reference to the links
+				nodes[i].links.push({ targetNode: nodes[k] });
+				break;//exit this iteration
+			}
+		}
+	}
+
 
 	//Function to open the skill dialog modal
 	var openSkillModal = function(d) {
-		console.log(d);
+		//console.log(d);
+		d3.select("body").style("position", "initial");
 
 		var transitionDuration = 500;
-
-		//Dialog Modal Size
-		var dialogSize = [1200,800];
 
 		//Set Dark Screen
 		var darkScreen = d3.select("body").append("div")
@@ -86,6 +117,8 @@ csvParser("userdata.csv", function(dataCollection) {
 
 		//Function to close the skill modal smoothly
 		var closeSkillModal = function() {
+			d3.select("body").style("position", "fixed");
+
 			skillDialog.transition().duration(transitionDuration)
 				.style("width", d.containerWidth + "px")
 				.style("height", d.containerHeight + "px")
@@ -123,12 +156,12 @@ csvParser("userdata.csv", function(dataCollection) {
 			.text(d.name);
 
 
+		var skillDialogDesc = skillDialog.append("div")
+			.attr("class", "skill-dialog-content");
+
 		//Function to set the skill modal description
 		var setDescription = function() {
-
-			skillDialog.append("div")
-				.attr("class", "skill-dialog-description")
-				.html(d.description);
+			skillDialogDesc.html(d.description);
 		}
 
 
@@ -172,7 +205,53 @@ csvParser("userdata.csv", function(dataCollection) {
 			});
 		}
 
+		//If the node has books relation
+		if(d.books) {
 
+			var booksArray = d.books.split(";");
+			//console.log(booksArray);
+
+			skillDialog.append("div")
+				.attr("class", "skill-dialog-subtitle")
+				.text("Books");
+
+			skillDialog.selectAll(".books").data(booksArray).enter()
+				.append("div")
+				.attr("class", "skill-dialog-content books")
+				.text(function(bookName){ return bookName; });
+		}
+
+		//If the node has base skills
+		if(d.baseSkills && d.baseSkills.length > 0) {
+
+			skillDialog.append("div")
+				.attr("class", "skill-dialog-subtitle")
+				.text("Base Skills");
+
+			skillDialog.selectAll(".base-skills").data(d.baseSkills).enter()
+				.append("div")
+				.attr("class", "skill-dialog-content base-skills")
+				.text(function(baseSkillName){ return baseSkillName; });
+		}
+
+		//If the node has links
+		if(d.internetRefs) {
+
+			var linksArray = d.internetRefs.split(";");
+			//console.log(linksArray);
+
+			skillDialog.append("div")
+				.attr("class", "skill-dialog-subtitle")
+				.text("Links");
+
+			skillDialog.selectAll(".internet-refs").data(linksArray).enter()
+				.append("div")
+				.attr("class", "skill-dialog-content internet-refs")
+				.append("a")
+				.attr("href", function(linkRef){ return linkRef; })
+				.attr("target", "_blank")
+				.text(function(linkRef){ return linkRef; });
+		}
 
 
 
@@ -193,7 +272,7 @@ csvParser("userdata.csv", function(dataCollection) {
 
 
 
-	var skillNode = graphContainer.selectAll(".skill-node").data(dataCollection).enter()
+	var skillNode = graphContainer.selectAll(".skill-node").data(nodes).enter()
 		.append("g")
 		.attr("id", function(d) {
 			return "skill-node-" + d.id;
@@ -212,8 +291,11 @@ csvParser("userdata.csv", function(dataCollection) {
 			return "translate(" + d.x + " " + d.y +")";
 
 		})
-		//.call(drag)
 		.on("click", openSkillModal);
+
+	//DEBUG PURPOSES
+	if(NODE_DRAG)
+		skillNode.call(drag);	
 		
 	var skillNodeContainer = skillNode.append("rect")
 		.attr("class", "skill-node-container")
@@ -272,6 +354,7 @@ csvParser("userdata.csv", function(dataCollection) {
 		.attr("y", function(d) {
 			return (d.containerHeight - 10) / 2;
 		});
+		console.log("CHANGE INPUT RECTANGLE TO A INPUT ARROW");
 
 	//output symbol
 	skillNode.append("rect")
@@ -307,12 +390,12 @@ csvParser("userdata.csv", function(dataCollection) {
 		if(d.links == undefined || d.links.length < 1)
 			return;
 
-		var linkSource = { x: d.x + d.containerWidth, y: d.y + 20 }
+		var linkSource = { x: d.x, y: d.y + 20 }
 
 		//Iterate thru the output links of the node
 		d.links.forEach(function(link) {
 
-			var linkTarget = { x: link.targetNode.x, y: link.targetNode.y + 20 }
+			var linkTarget = { x: link.targetNode.x + link.targetNode.containerWidth, y: link.targetNode.y + 20 }
 
 
 			var linkPath = createLink({ source: linkSource, target: linkTarget });

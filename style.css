@@ -12,6 +12,7 @@ body {
     position: fixed; */
     background-color: #ddd;
     position: fixed; 
+    overflow-x: hidden;
 }
 
 #side-menu {
@@ -124,13 +125,21 @@ div#logo {
 .skill-dialog-title {
 	color: #000;
 	font-size: 40px;
-	margin: 10px 20px 10px 30px;
+	margin: 10px 20px 20px 30px;
+	font-weight: bold;
 }
 
-.skill-dialog-description {
+.skill-dialog-subtitle {
 	color: #000;
-	font-size: 20px;
-	margin: 10px 20px 10px 30px;
+	font-size: 26px;
+	margin: 30px 20px 10px 30px;
+	font-weight: bold;
+}
+
+.skill-dialog-content {
+	color: #000;
+	font-size: 18px;
+	margin: 5px 20px 5px 30px;
 	text-align: justify;
 }
 
