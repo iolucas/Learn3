@@ -117,8 +117,7 @@ div#logo {
 	color: #000;
 	font-size: 25px;
 	font-weight: bold;
-	line-height: 25px;
-	padding-right: 5px;
+	padding-right: 10px;
 	cursor: pointer;
 }
 
@@ -156,4 +155,16 @@ div#logo {
 
 .skill-node {
 	cursor: pointer;
+}
+
+.skill-node-container {
+	stroke-width: 2;
+	stroke: #fff;
+}
+
+.skill-node-container-selected {
+	stroke: #008;
+	stroke-width: 4;
+	fill: #eee;
+
 }

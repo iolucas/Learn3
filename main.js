@@ -17,13 +17,20 @@ var NODE_DRAG = false;
 
 var SCREEN_DRAG = true;
 
+//Flag to signalize if the we should prevent the selection clear due to some event
+var preventClearSelection = false;	
 
 //Must find way to fix bug of infinite drag positions
 var zoomBehavior = d3.behavior.zoom()
 	.scaleExtent([0.1, 1])
 	.on("zoom", function(z) {
+
 		graphContainer.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
 		graphContPos = d3.event.translate;
+
+		//Prevent clear selection due to sequential mouse click event on mouse move event
+		if(d3.event.sourceEvent && d3.event.sourceEvent.type == "mousemove")
+			preventClearSelection = true;
 	});
 
 //Function to refresh the screen size
@@ -33,9 +40,12 @@ var refreshScreenSize = function() {
 
 	zoomBehavior.size([window.innerWidth, window.innerHeight]);
 
+	var newLeftValue = window.innerWidth - dialogSize[0];
+	newLeftValue = newLeftValue < 0 ? 0 : newLeftValue / 2;
+
 	d3.selectAll(".skill-dialog")
 		.style("top", 50 + "px")
-		.style("left", (window.innerWidth - dialogSize[0]) / 2  + "px")
+		.style("left", newLeftValue + "px")
 }
 
 window.addEventListener("resize", refreshScreenSize);
@@ -55,8 +65,6 @@ var drag = d3.behavior.drag()
 	});
 
 //Create csv parser to avoid some caracters crash
-
-
 var csvParser = d3.dsv(",", "text/plain; charset=ISO-8859-1");
 
 csvParser("userdata.csv", function(nodes) {
@@ -99,6 +107,10 @@ csvParser("userdata.csv", function(nodes) {
 	//Function to open the skill dialog modal
 	var openSkillModal = function(d) {
 		//console.log(d);
+
+		//Cancel event bubble to avoid zooming 
+		d3.event.cancelBubble = true;
+
 		d3.select("body").style("position", "initial");
 
 		var transitionDuration = 500;
@@ -205,6 +217,19 @@ csvParser("userdata.csv", function(nodes) {
 			});
 		}
 
+		//If the node has base skills
+		if(d.baseSkills && d.baseSkills.length > 0) {
+
+			skillDialog.append("div")
+				.attr("class", "skill-dialog-subtitle")
+				.text("Base Skills");
+
+			skillDialog.selectAll(".base-skills").data(d.baseSkills).enter()
+				.append("div")
+				.attr("class", "skill-dialog-content base-skills")
+				.text(function(baseSkillName){ return baseSkillName; });
+		}
+
 		//If the node has books relation
 		if(d.books) {
 
@@ -219,19 +244,6 @@ csvParser("userdata.csv", function(nodes) {
 				.append("div")
 				.attr("class", "skill-dialog-content books")
 				.text(function(bookName){ return bookName; });
-		}
-
-		//If the node has base skills
-		if(d.baseSkills && d.baseSkills.length > 0) {
-
-			skillDialog.append("div")
-				.attr("class", "skill-dialog-subtitle")
-				.text("Base Skills");
-
-			skillDialog.selectAll(".base-skills").data(d.baseSkills).enter()
-				.append("div")
-				.attr("class", "skill-dialog-content base-skills")
-				.text(function(baseSkillName){ return baseSkillName; });
 		}
 
 		//If the node has links
@@ -253,9 +265,6 @@ csvParser("userdata.csv", function(nodes) {
 				.text(function(linkRef){ return linkRef; });
 		}
 
-
-
-
 		//Show dark screen smoothly
 		darkScreen.transition().duration(transitionDuration)
 			.style("opacity", 1);
@@ -270,15 +279,90 @@ csvParser("userdata.csv", function(nodes) {
 
 	}
 
+	var nodeSelected = false;
+
+	//Function to clear all selections
+	var clearAllSelections = function() {
+
+		if(!nodeSelected)
+			return;
+
+		if(preventClearSelection) {
+			preventClearSelection = false;
+			return;
+		}
+
+		//Focus all nodes
+		graphContainer.selectAll(".skill-node")
+			.style("opacity", 1);
+
+		//Focus all links
+		graphContainer.selectAll(".skill-link")
+			.style("opacity", 1);
+
+		//Clear any selected class
+		d3.selectAll(".skill-node-container-selected")
+			.classed("skill-node-container-selected", false);
+
+		nodeSelected = false;
+	}
+
+	svgContainer.on("click", clearAllSelections);
+
+
+	var selectNodePath = function(d) {
+		nodeSelected = true;
+
+		//Avoid click event on svgContainer
+		d3.event.cancelBubble = true;
+
+		//Unfocus all nodes
+		graphContainer.selectAll(".skill-node")
+			.style("opacity", .1);
+
+		//Unfocus all links
+		graphContainer.selectAll(".skill-link")
+			.style("opacity", .1);
+
+		//Clear any selected class
+		d3.selectAll(".skill-node-container-selected")
+			.classed("skill-node-container-selected", false);
+
+		//Highlight target node selected class
+		d.nodePointer.select(".skill-node-container")
+			.classed("skill-node-container-selected", true);
+
+
+		//Function to highlight nodes chain
+		var highlightNodes = function(tNode) {
+			tNode.nodePointer.style("opacity", 1);	
+
+			if(tNode.links && tNode.links.length > 0) {	
+				//if there links for this node,
+				//iterate thru all links
+				tNode.links.forEach(function(link) {
+					link.linkPointer.style("opacity", 1);//Highlight link obj
+					highlightNodes(link.targetNode);//recurse this function on the node
+				});	
+			}
+		}
+
+		//Recursivelly highlight clicked node and its parents
+		highlightNodes(d);
+	}
+
 
 
 	var skillNode = graphContainer.selectAll(".skill-node").data(nodes).enter()
 		.append("g")
-		.attr("id", function(d) {
+		/*.attr("id", function(d) {
 			return "skill-node-" + d.id;
-		})
+		})*/
 		.attr("class", "skill-node")
 		.attr("transform", function(d) {
+			//Set node ref to the node data obj
+			d.nodePointer = d3.select(this);
+
 			if(d.x == undefined)
 				d.x = "100";
 			
@@ -291,7 +375,8 @@ csvParser("userdata.csv", function(nodes) {
 			return "translate(" + d.x + " " + d.y +")";
 
 		})
-		.on("click", openSkillModal);
+		.on("click", selectNodePath)
+		.on("dblclick", openSkillModal);
 
 	//DEBUG PURPOSES
 	if(NODE_DRAG)
@@ -306,10 +391,6 @@ csvParser("userdata.csv", function(nodes) {
 
 			return d.containerHeight;
 		})
-		//.attr("rx", 0)
-		//.attr("ry", 0)
-		.attr("stroke-width", 2)
-		.attr("stroke", "#fff")
 		.attr("fill", function(d) {
 			return d.color;
 		});
@@ -342,7 +423,7 @@ csvParser("userdata.csv", function(nodes) {
 		});
 
 	//input symbol
-	skillNode.append("rect")
+	/*skillNode.append("rect")
 		.attr("width", 10)
 		.attr("height", 10)
 		.attr("fill", "#aaa")
@@ -353,24 +434,28 @@ csvParser("userdata.csv", function(nodes) {
 		.attr("x", -5)
 		.attr("y", function(d) {
 			return (d.containerHeight - 10) / 2;
-		});
-		console.log("CHANGE INPUT RECTANGLE TO A INPUT ARROW");
+		});*/
 
-	//output symbol
-	skillNode.append("rect")
-		.attr("width", 10)
-		.attr("height", 10)
+	//input symbol
+	skillNode.append("path")
+		.attr("d", "M0,0 14,7 L0,14z")
 		.attr("fill", "#aaa")
-		.attr("rx", 2)
-		.attr("ry", 2)
 		.attr("stroke", "#fff")
 		.attr("stroke-width", 2)
-		.attr("x", function(d) {
-			return d.containerWidth - 5;
-		})
-		.attr("y", function(d) {
-			return (d.containerHeight - 10) / 2;
+		.attr("transform", function(d) {
+			return "translate(-5 " + (d.containerHeight - 14) / 2 + ")";
 		});
+
+	//output symbol
+	skillNode.append("path")
+		.attr("d", "M0,0 14,7 L0,14z")
+		.attr("fill", "#aaa")
+		.attr("stroke", "#fff")
+		.attr("stroke-width", 2)
+		.attr("transform", function(d) {
+			return "translate(" + (d.containerWidth - 5) + " " + (d.containerHeight - 14) / 2 + ")";
+		});
+
 
 	skillNodeContainer.attr("width", function(d) { return d.containerWidth; });
 
@@ -400,13 +485,15 @@ csvParser("userdata.csv", function(nodes) {
 
 			var linkPath = createLink({ source: linkSource, target: linkTarget });
 
-
 			var nodeLink = graphContainer.insert("path", ":first-child")
 				.attr("class", "skill-link")
 				.attr("d", linkPath)
 				.attr("fill", "none")
 				.attr("stroke", "#000")
 				.attr("stroke-width", 2);
+
+			//Get the link visual obj reference
+			link.linkPointer = nodeLink;
 
 		});
 
