@@ -1,4 +1,6 @@
-//Begin Global Variables Definition
+//-----------------------------------------------------------------------
+//					Begin Global Variables Definition
+//-----------------------------------------------------------------------
 
 	//Store the current position of the nodes main container
 	var graphContPos = [0,0];	
@@ -21,11 +23,21 @@
 	//Flag showing whether a node is selected
 	var nodeSelected = false;
 
-//End Global Variables Definition
+//-----------------------------------------------------------------------
+//					End Global Variables Definition
+//-----------------------------------------------------------------------
 
-KEEP ORGANIZING THIS MAIN FILE, AND CREATE WAY FOR PROJECT NODES
 
-//Begin Main SVG Objects Definition
+
+
+//KEEP ORGANIZING THIS MAIN FILE, AND CREATE WAY FOR PROJECT NODES
+
+
+
+
+//-----------------------------------------------------------------------
+//					Begin Main SVG Objects Definition
+//-----------------------------------------------------------------------
 
 	//Append svg container
 	var svgContainer = d3.select("#general-content").append("svg");	
@@ -43,9 +55,16 @@ KEEP ORGANIZING THIS MAIN FILE, AND CREATE WAY FOR PROJECT NODES
 	//Append nodes main container
 	var graphContainer = svgContainer.append("g");
 
-//End Main SVG Objects Definition
+//-----------------------------------------------------------------------
+//					End Main SVG Objects Definition
+//-----------------------------------------------------------------------
 
-//Begin Functions Definition
+
+
+
+//-----------------------------------------------------------------------
+//					Begin Functions Definition
+//-----------------------------------------------------------------------
 
 	//Function to handle screen zooming/draging
 	var zoomBehavior = d3.behavior.zoom()
@@ -56,7 +75,7 @@ KEEP ORGANIZING THIS MAIN FILE, AND CREATE WAY FOR PROJECT NODES
 			graphContPos = d3.event.translate;
 
 			//Prevent clear selection due to sequential mouse click event on mouse move event
-			if(d3.event.sourceEvent && d3.event.sourceEvent.type == "mousemove")
+			if(d3.event.sourceEvent && d3.event.sourceEvent.type == "mousemove" && false)
 				preventMouseClick = true;
 		});
 
@@ -73,20 +92,15 @@ KEEP ORGANIZING THIS MAIN FILE, AND CREATE WAY FOR PROJECT NODES
 			//Update dragged node parent and child links paths
 			for(var i = 0; i < d.parentLinks.length; i++) {
 				var currLink = d.parentLinks[i];
-				d3.select(currLink.linkObj).attr("d", createLinkPath(currLink.sourceNode, currLink.targetNode));
+				currLink.linkObj.attr("d", createLinkPath(currLink));
 			}
 
 			for(var i = 0; i < d.childLinks.length; i++) {
 				var currLink = d.childLinks[i];
-				d3.select(currLink.linkObj).attr("d", createLinkPath(currLink.sourceNode, currLink.targetNode));
+				currLink.linkObj.attr("d", createLinkPath(currLink));
 			}
 
-			/*if(d.links && d.links.length)
-				d.links.forEach(function(link) {
-					link.linkPointer.attr("d", createLinkPath(d, link.targetNode));
-				});*/
-
-			d3.select(this).attr("transform", "translate(" + d.x + " " + d.y + ")");	
+			d.nodeObj.attr("transform", "translate(" + d.x + " " + d.y + ")");	
 		});
 
 	//Function to handle screen size change
@@ -113,20 +127,17 @@ KEEP ORGANIZING THIS MAIN FILE, AND CREATE WAY FOR PROJECT NODES
 			.style("left", newLeftValue + "px")
 	}
 
-	//Function to create the path of a diagonal line (should be used only by createLinkPath function)
-	var createDiagonal = d3.svg.diagonal()
-		.source(function(d) { return {"x":d.source.y, "y":d.source.x}; })            
-    	.target(function(d) { return {"x":d.target.y, "y":d.target.x}; })
-    	.projection(function(d) { return [d.y, d.x]; });
-
-	//Function to return the path of the link between two nodes
-	var createLinkPath = function(sourceNode, targetNode) {
-
-		var linkSource = { x: sourceNode.x + sourceNode.containerWidth, y: sourceNode.y + 20 }
-		var linkTarget = { x: targetNode.x, y: targetNode.y + 20 }		
-
-		return createDiagonal({ source: linkSource, target: linkTarget });
-	}
+	//Function to create the path of a diagonal line (x and y are inverted for right line projection)
+	var createLinkPath = d3.svg.diagonal()
+		.source(function(link) { 
+			return { x: link.source.y + 20, y: link.source.x + link.source.containerWidth }; 
+		})            
+    	.target(function(link) { 
+    		return { x: link.target.y + 20, y: link.target.x }; 
+    	})
+    	.projection(function(d) { 
+    		return [d.y, d.x]; 
+    	});
 
 	//Function to open a csv format file and convert it to JSON object
 	//(Must create a new csv parser to avoid some caracters crash that happens when using the standard parser)
@@ -364,21 +375,21 @@ KEEP ORGANIZING THIS MAIN FILE, AND CREATE WAY FOR PROJECT NODES
 			.classed("skill-node-container-selected", false);
 
 		//Highlight target node selected class
-		d.nodePointer.select(".skill-node-container")
+		d.nodeObj.select(".skill-node-container")
 			.classed("skill-node-container-selected", true);
 
 
 		//Function to recursively highlight nodes chain
 		var highlightNodes = function(tNode) {
-			tNode.nodePointer.style("opacity", 1);	
+			tNode.nodeObj.style("opacity", 1);	
 
 			//iterate thru all parent links
 			for(var i = 0; i < tNode.parentLinks.length; i++) {
 				var currLink = tNode.parentLinks[i];
 
-				d3.select(currLink.linkObj).style("opacity", 1);	
+				currLink.linkObj.style("opacity", 1);	
 
-				highlightNodes(currLink.sourceNode);//recurse this function on the node
+				highlightNodes(currLink.source);//recurse this function on the node
 			}
 
 		}
@@ -387,10 +398,16 @@ KEEP ORGANIZING THIS MAIN FILE, AND CREATE WAY FOR PROJECT NODES
 		highlightNodes(d);
 	}
 
-//End Functions Definition
+//-----------------------------------------------------------------------
+//						End Functions Definition
+//-----------------------------------------------------------------------
 
 
-//Begin App Execution
+
+//-----------------------------------------------------------------------
+//						Begin App Execution
+//-----------------------------------------------------------------------
+
 
 window.addEventListener("resize", onScreenSizeChange);
 window.addEventListener("load", onScreenSizeChange);
@@ -401,7 +418,7 @@ if(SCREEN_DRAG)
 svgMouseArea.on("click", clearAllSelections);
 
 
-csvParser("userdata.csv", function (nodes) {
+csvParser(USER_PATH + "user-data.csv", function (nodes) {
 
 	//Nodes map to get nodes reference thru their names
 	var nodesMap = {}
@@ -412,9 +429,6 @@ csvParser("userdata.csv", function (nodes) {
 	//Populate nodes map and define necessary objects and arrays for all the nodes
 	for(var i = 0; i < nodes.length; i++) {
 		var currNode = nodes[i];
-
-		//If the node name has already been defined, proceed next iteration
-		//ON FINAL IMPLEMENTATION THIS MUST BE DONE WITH IDS TO AVOID TWO EQUAL NAMES REFERENCE TO THE SAME THING
 
 		//Set node reference to the nodesMap
 		nodesMap[currNode.name] = currNode;
@@ -435,7 +449,7 @@ csvParser("userdata.csv", function (nodes) {
 				baseSkillNode = nodesMap[baseSkill];
 
 			//Create new link object
-			var newLink = { sourceNode: baseSkillNode, targetNode: currNode }
+			var newLink = { source: baseSkillNode, target: currNode }
 			linksArray.push(newLink);
 
 			//push the line reference
@@ -450,13 +464,10 @@ csvParser("userdata.csv", function (nodes) {
 	//Create nodes
 	var skillNode = graphContainer.selectAll(".skill-node").data(nodes).enter()
 		.append("g")
-		/*.attr("id", function(d) {
-			return "skill-node-" + d.id;
-		})*/
 		.attr("class", "skill-node")
 		.attr("transform", function(d) {
 			//Set node ref to the node data obj
-			d.nodePointer = d3.select(this);
+			d.nodeObj = d3.select(this);
 
 			if(d.x == undefined)
 				d.x = "100";
@@ -517,7 +528,10 @@ csvParser("userdata.csv", function (nodes) {
 			return (d.containerHeight - textBox.height) / 2 - textBox.y;
 		});
 
-	//input symbol
+	//Set skill container width now the text has been placed
+	skillNodeContainer.attr("width", function(d) { return d.containerWidth; });
+
+	//Draw input symbol
 	skillNode.append("path")
 		.attr("d", "M0,0 14,7 L0,14z")
 		.attr("fill", "#aaa")
@@ -527,7 +541,7 @@ csvParser("userdata.csv", function (nodes) {
 			return "translate(-5 " + (d.containerHeight - 14) / 2 + ")";
 		});
 
-	//output symbol
+	//Draw output symbol
 	skillNode.append("path")
 		.attr("d", "M0,0 14,7 L0,14z")
 		.attr("fill", "#aaa")
@@ -538,18 +552,17 @@ csvParser("userdata.csv", function (nodes) {
 		});
 
 
-	skillNodeContainer.attr("width", function(d) { return d.containerWidth; });
 
 
 	//Create the links
 	var skillLink = graphContainer.selectAll(".skill-link").data(linksArray).enter()
 		.insert("path", ":first-child")
 		.attr("class", "skill-link")
-		.attr("d", function(d) {
-			d.linkObj = this;	//get the link obj reference
+		.attr("d", function(link) {
+			link.linkObj = d3.select(this);	//get the link obj reference
 
 			//Return the path created by the source and target nodes
-			return createLinkPath(d.sourceNode, d.targetNode);
+			return createLinkPath(link);
 		})
 		.attr("fill", "none")
 		.attr("stroke", "#000")

@@ -1,2 +1,3 @@
 -Must find way to fix bug of infinite drag positions in zooming/draging
 -Must find proper way to prevent mouse click event to occurr if it is followed by a mouse move event
+-must handle nodes and links with ids (must define if they excluvely globally or locally)

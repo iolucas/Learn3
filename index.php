@@ -1,10 +1,51 @@
+<?php
+    //Function for open specified file
+    function OpenAndReadFile($fileName) {
+
+        //@ -> suppress warnings
+
+        $fileOpened = @fopen($fileName, "r");   //Open file specified
+        $openResult = @fread($fileOpened, filesize($fileName)); //Read the complete file and get its content
+        @fclose($fileOpened);   //close the file handle 
+
+        //If no result were get, set msg
+        if(!$openResult)
+            $openResult = "OPENREAD_ERROR";
+
+        return $openResult;
+    }
+
+    //Check if the user variable has been specified
+    if(!isset($_GET['user']) || $_GET['user'] == "")
+        exit("NO_USER_SPECIFIED");
+    
+    //Get the user files path using the GET variables
+    $userPath = 'userdb'. DIRECTORY_SEPARATOR . $_GET['user'] . DIRECTORY_SEPARATOR;
+
+    //If the user dir is not found, return error
+    if(!is_dir($userPath))
+        exit("USER_NOT_FOUND");
+
+    //Open and read user-info xml file
+    $userXmlString = OpenAndReadFile($userPath."user-info.xml");
+    if($userXmlString == "OPENREAD_ERROR")
+        exit("ERROR_WHILE_GATHERING_USER_DATA");
+
+    //Get php object from the xml string
+    $userObj = simplexml_load_string($userXmlString);
+
+    //print_r($userXmlObj);
+    //echo $userXmlObj->name;
+?>
+
+
 <!DOCTYPE html>
 <html>
 	<head>
 		<meta charset="UTF-8">
 	    <link rel="stylesheet" href="style.css"/>
+        <title><?php echo 'learn3 - ' . $userObj->name ?></title>
 	</head>
-
 
 	<body>
         <!--Side menu-->
@@ -12,11 +53,12 @@
             <div id="logo">learn3</div>
             <input id="search-field" type="search"  placeholder="Search...">
             <div class="divisor"></div>
-            <img src="user.png">
-            <div id="user-name" class="black-font">Lucas V. Oliveira</div>
-            <div id="user-trackers" class="black-font">Trackers 1000</div>
-            <div id="user-tracking" class="black-font">Tracking 1000</div>
-            <div id="user-description" class="black-font">This is my description, I don't know what to write, so I am writing anything. This layout is historical cause it is the first layout of Learn3 Project. Cheers!</div>
+            <?php echo '<img src="'.$userPath.'user-img.png">' ?>
+
+            <div id="user-name" class="black-font"><?php echo $userObj->name ?></div>
+            <div id="user-trackers" class="black-font">Trackers <?php echo $userObj->trackers ?></div>
+            <div id="user-tracking" class="black-font">Tracking <?php echo $userObj->tracking ?></div>
+            <div id="user-description" class="black-font"><?php echo $userObj->description ?></div>
             <div id="pta" class="black-font">Privacy | Terms | About</div>
             <div id="copyright" class="black-font">Copyright 2015 - Learn3</div>
         </nav>
@@ -25,7 +67,9 @@
         <section id="general-content">
             <!--<svg id="svgContainer"></svg>-->
         </section>
-
+        <script>
+            var USER_PATH = "<?php echo str_replace('\\','/',$userPath); ?>";
+        </script>
 
 		<script src="jquery/jquery-2.1.4.min.js"></script>
 
