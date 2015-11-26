@@ -1,0 +1,2 @@
+-Must find way to fix bug of infinite drag positions in zooming/draging
+-Must find proper way to prevent mouse click event to occurr if it is followed by a mouse move event

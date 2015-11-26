@@ -1,119 +1,147 @@
-var svgContainer = d3.select("#svgContainer")
-	.on("mousedown", function() {
-		d3.select(this).style("cursor", "move");		
-	})
-	.on("mouseup", function() {
-		d3.select(this).style("cursor", "");		
-	});
+//Begin Global Variables Definition
 
-var graphContainer = svgContainer.append("g");
+	//Store the current position of the nodes main container
+	var graphContPos = [0,0];	
 
-var graphContPos = [0,0];
+	//Store the size of the node modal dialog box
+	var dialogSize = [1200,800];
 
-//Dialog Modal Size
-var dialogSize = [1200,800];
+	//Flag signalizing whether node drag is allowed
+	var NODE_DRAG = true;
 
-var NODE_DRAG = false;
+	//Flag signalizing whether screen drag/zoom is allowed
+	var SCREEN_DRAG = true;
 
-var SCREEN_DRAG = true;
+	//Flag to signalize if the we should prevent the selection clear due to some event
+	var preventMouseClick = false;
 
-//Flag to signalize if the we should prevent the selection clear due to some event
-var preventClearSelection = false;	
+	//Value in milliseconds for the transitions to occurr
+	var transitionDuration = 500;
 
-//Must find way to fix bug of infinite drag positions
-var zoomBehavior = d3.behavior.zoom()
-	.scaleExtent([0.1, 1])
-	.on("zoom", function(z) {
+	//Flag showing whether a node is selected
+	var nodeSelected = false;
 
-		graphContainer.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
-		graphContPos = d3.event.translate;
+//End Global Variables Definition
 
-		//Prevent clear selection due to sequential mouse click event on mouse move event
-		if(d3.event.sourceEvent && d3.event.sourceEvent.type == "mousemove")
-			preventClearSelection = true;
-	});
+KEEP ORGANIZING THIS MAIN FILE, AND CREATE WAY FOR PROJECT NODES
 
-//Function to refresh the screen size
-var refreshScreenSize = function() {
-	svgContainer.attr("height", window.innerHeight)
-		.attr("width", window.innerWidth);
+//Begin Main SVG Objects Definition
 
-	zoomBehavior.size([window.innerWidth, window.innerHeight]);
+	//Append svg container
+	var svgContainer = d3.select("#general-content").append("svg");	
 
-	var newLeftValue = window.innerWidth - dialogSize[0];
-	newLeftValue = newLeftValue < 0 ? 0 : newLeftValue / 2;
+	//Append rectangle to receive mouse events such void click or screen zooming/moving
+	var svgMouseArea = svgContainer.append("rect")
+		.attr("fill", "#ddd")
+		.on("mousedown", function() {
+			d3.select(this).style("cursor", "move");		
+		})
+		.on("mouseup", function() {
+			d3.select(this).style("cursor", "");		
+		});
 
-	d3.selectAll(".skill-dialog")
-		.style("top", 50 + "px")
-		.style("left", newLeftValue + "px")
-}
+	//Append nodes main container
+	var graphContainer = svgContainer.append("g");
 
-window.addEventListener("resize", refreshScreenSize);
-window.addEventListener("load", refreshScreenSize);
+//End Main SVG Objects Definition
 
-if(SCREEN_DRAG)
-	svgContainer.call(zoomBehavior);
+//Begin Functions Definition
 
+	//Function to handle screen zooming/draging
+	var zoomBehavior = d3.behavior.zoom()
+		.scaleExtent([0.1, 1])
+		.on("zoom", function(z) {
 
-var drag = d3.behavior.drag()
-	.origin(function(d) { return d; })
-	.on("drag", function(d) {
-		d.x = d3.event.x < 1 ? 1 : d3.event.x;
-		d.y = d3.event.y < 1 ? 1 : d3.event.y;
+			graphContainer.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+			graphContPos = d3.event.translate;
 
-		d3.select(this).attr("transform", "translate(" + d.x + " " + d.y + ")");	
-	});
+			//Prevent clear selection due to sequential mouse click event on mouse move event
+			if(d3.event.sourceEvent && d3.event.sourceEvent.type == "mousemove")
+				preventMouseClick = true;
+		});
 
-//Create csv parser to avoid some caracters crash
-var csvParser = d3.dsv(",", "text/plain; charset=ISO-8859-1");
+	//Function to handle nodes drag
+	var drag = d3.behavior.drag()
+		.origin(function(d) { return d; })
+		.on("drag", function(d) {
+			d.x = d3.event.x < 1 ? 1 : d3.event.x;
+			d.y = d3.event.y < 1 ? 1 : d3.event.y;
 
-csvParser("userdata.csv", function(nodes) {
+			d.x = d3.event.x;
+			d.y = d3.event.y;
 
-	//console.log(nodes);
-
-	var nodeOffset = 0;
-
-	//Populate nodes links with target references
-	for(var i = 0; i < nodes.length; i++) {
-		if(!nodes[i].connections)
-			continue;
-
-		//Create a links array on the node
-		nodes[i].links = [];
-
-		//Get the targets links
-		var targets = nodes[i].connections.split(";");
-
-		nodes[i].baseSkills = targets;
-		
-		//Iterate thru the links
-		for(var j = 0; j < targets.length; j++) {
-			var targetName = targets[j];
-
-			//Iterate thru all the nodes to find the reference for the given link
-			for(var k = 0; k < nodes.length; k++) {
-				//If the name doesn't match, continue next iteration
-				if(nodes[k].name != targetName)
-					continue;
-
-				//If the name matchs, push the current node reference to the links
-				nodes[i].links.push({ targetNode: nodes[k] });
-				break;//exit this iteration
+			//Update dragged node parent and child links paths
+			for(var i = 0; i < d.parentLinks.length; i++) {
+				var currLink = d.parentLinks[i];
+				d3.select(currLink.linkObj).attr("d", createLinkPath(currLink.sourceNode, currLink.targetNode));
 			}
-		}
+
+			for(var i = 0; i < d.childLinks.length; i++) {
+				var currLink = d.childLinks[i];
+				d3.select(currLink.linkObj).attr("d", createLinkPath(currLink.sourceNode, currLink.targetNode));
+			}
+
+			/*if(d.links && d.links.length)
+				d.links.forEach(function(link) {
+					link.linkPointer.attr("d", createLinkPath(d, link.targetNode));
+				});*/
+
+			d3.select(this).attr("transform", "translate(" + d.x + " " + d.y + ")");	
+		});
+
+	//Function to handle screen size change
+	var onScreenSizeChange = function() {
+
+		//Update svg view window size
+		svgContainer.attr("height", window.innerHeight)
+			.attr("width", window.innerWidth);
+
+		//Update svg mouse area size
+		svgMouseArea.attr("height", window.innerHeight)
+			.attr("width", window.innerWidth);
+
+		//Update the zoom behavior size for smooth transitions
+		zoomBehavior.size([window.innerWidth, window.innerHeight]);
+
+		//Get the skill modal window left value
+		var newLeftValue = window.innerWidth - dialogSize[0];
+		newLeftValue = newLeftValue < 0 ? 0 : newLeftValue / 2;
+
+		//Set the new positions for the skill modal dialog
+		d3.selectAll(".skill-dialog")
+			.style("top", 50 + "px")
+			.style("left", newLeftValue + "px")
 	}
 
+	//Function to create the path of a diagonal line (should be used only by createLinkPath function)
+	var createDiagonal = d3.svg.diagonal()
+		.source(function(d) { return {"x":d.source.y, "y":d.source.x}; })            
+    	.target(function(d) { return {"x":d.target.y, "y":d.target.x}; })
+    	.projection(function(d) { return [d.y, d.x]; });
+
+	//Function to return the path of the link between two nodes
+	var createLinkPath = function(sourceNode, targetNode) {
+
+		var linkSource = { x: sourceNode.x + sourceNode.containerWidth, y: sourceNode.y + 20 }
+		var linkTarget = { x: targetNode.x, y: targetNode.y + 20 }		
+
+		return createDiagonal({ source: linkSource, target: linkTarget });
+	}
+
+	//Function to open a csv format file and convert it to JSON object
+	//(Must create a new csv parser to avoid some caracters crash that happens when using the standard parser)
+	var csvParser = d3.dsv(",", "text/plain; charset=ISO-8859-1");
 
 	//Function to open the skill dialog modal
 	var openSkillModal = function(d) {
-		//console.log(d);
 
-		//Cancel event bubble to avoid zooming 
+		//Cancel event bubble to avoid another actions to occurr on double click 
 		d3.event.cancelBubble = true;
 
+		//Set the body position to initial to show the y scroll 
 		d3.select("body").style("position", "initial");
 
-		var transitionDuration = 500;
+
 
 		//Set Dark Screen
 		var darkScreen = d3.select("body").append("div")
@@ -127,31 +155,6 @@ csvParser("userdata.csv", function(nodes) {
 			.style("top", d.y + graphContPos[1] + "px")
 			.style("left", d.x + graphContPos[0] + "px");
 
-		//Function to close the skill modal smoothly
-		var closeSkillModal = function() {
-			d3.select("body").style("position", "fixed");
-
-			skillDialog.transition().duration(transitionDuration)
-				.style("width", d.containerWidth + "px")
-				.style("height", d.containerHeight + "px")
-				.style("top", d.y + graphContPos[1] + "px")
-				.style("left", d.x + graphContPos[0] + "px")
-				.style("background-color", d.color)
-				.style("opacity", 0)
-				.remove();	//Remove the skill dialog
-
-
-			darkScreen.transition().duration(transitionDuration)
-				.style("opacity", 0)
-				.remove();
-			
-			//Ensure all dark screen are removed
-			//d3.selectAll(".dark-screen").remove();
-
-			//Ensure all skill-dialog are removed
-			//d3.selectAll(".skill-dialog").remove();
-		}
-
 
 		//Set Dialog Modal Upper Bar and Close Button
 		skillDialog.append("div")
@@ -160,7 +163,7 @@ csvParser("userdata.csv", function(nodes) {
 			.append("span")
 			.attr("class", "skill-dialog-close-button")
 			.text("x")
-			.on("click", closeSkillModal);
+			.on("click", function() { return closeSkillModal(d); });
 
 		//Set skill dialog data
 		skillDialog.append("div")
@@ -185,34 +188,29 @@ csvParser("userdata.csv", function(nodes) {
 		//if not, check if we got one ref from wikipedia and attempt to get the desc from there
 			var reqUrl = "https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro=&explaintext=&titles=" + d.wikipediaTitle;
 
-			$.ajax({ 
-				type: "GET",
-				dataType: "jsonp",
-				url: reqUrl,
-				success: function(reqData){
-					//If there data is not valid, return
-					if(!reqData.query.pages)
-						return;
+			//Send REST request for wikipedia data
+			ajaxGetRequest(reqUrl, function(reqData) {
+				//If there data is not valid, return
+				if(!reqData.query.pages)
+					return;
 
-					for(var prop in reqData.query.pages) {
-						//If the extract data is valid, set it as the description
-						var queryText = reqData.query.pages[prop].extract,
-							queryMaxLength = 800;
+				for(var prop in reqData.query.pages) {
+					//If the extract data is valid, set it as the description
+					var queryText = reqData.query.pages[prop].extract,
+						queryMaxLength = 800;
 
-						if(queryText) {
-							//If the query text is too long, trunc it
-							if(queryText.length > queryMaxLength)
-								queryText = queryText.substr(0,queryMaxLength) + "...";
+					if(queryText) {
+						//If the query text is too long, trunc it
+						if(queryText.length > queryMaxLength)
+							queryText = queryText.substr(0,queryMaxLength) + "...";
 
-							//Add the wikipedia ref
-							queryText += " <a target='_blank' href='https://en.wikipedia.org/wiki/" + d.wikipediaTitle + "'>Read More</a>";
+						//Add the wikipedia ref
+						queryText += " <a target='_blank' href='https://en.wikipedia.org/wiki/" + d.wikipediaTitle + "'>Read More</a>";
 
-							d.description = queryText;
-							setDescription();
-							break;
-						}
+						d.description = queryText;
+						setDescription();
+						break;
 					}
-
 				}
 			});
 		}
@@ -279,7 +277,30 @@ csvParser("userdata.csv", function(nodes) {
 
 	}
 
-	var nodeSelected = false;
+	//Function to close the skill modal smoothly
+	var closeSkillModal = function(d) {
+		d3.select("body").style("position", "fixed");
+
+		d3.selectAll(".skill-dialog").transition().duration(transitionDuration)
+			.style("width", d.containerWidth + "px")
+			.style("height", d.containerHeight + "px")
+			.style("top", d.y + graphContPos[1] + "px")
+			.style("left", d.x + graphContPos[0] + "px")
+			.style("background-color", d.color)
+			.style("opacity", 0)
+			.remove();	//Remove the skill dialog
+
+
+		d3.selectAll(".dark-screen").transition().duration(transitionDuration)
+			.style("opacity", 0)
+			.remove();
+		
+		//Ensure all dark screen are removed
+		//d3.selectAll(".dark-screen").remove();
+
+		//Ensure all skill-dialog are removed
+		//d3.selectAll(".skill-dialog").remove();
+	}
 
 	//Function to clear all selections
 	var clearAllSelections = function() {
@@ -287,8 +308,8 @@ csvParser("userdata.csv", function(nodes) {
 		if(!nodeSelected)
 			return;
 
-		if(preventClearSelection) {
-			preventClearSelection = false;
+		if(preventMouseClick) {
+			preventMouseClick = false;
 			return;
 		}
 
@@ -307,14 +328,28 @@ csvParser("userdata.csv", function(nodes) {
 		nodeSelected = false;
 	}
 
-	svgContainer.on("click", clearAllSelections);
+	//Function to wrap http get data via jquery ajax
+	var ajaxGetRequest = function(requestUrl, callback) {
+		return $.ajax({ 
+			type: "GET",
+			dataType: "jsonp",
+			url: requestUrl,
+			success: callback
+		});
+	}
 
-
+	//Function to highlight all the path towards a specified node
 	var selectNodePath = function(d) {
-		nodeSelected = true;
 
 		//Avoid click event on svgContainer
 		d3.event.cancelBubble = true;
+
+		if(preventMouseClick) {
+			preventMouseClick = false;
+			return;
+		}
+
+		nodeSelected = true;
 
 		//Unfocus all nodes
 		graphContainer.selectAll(".skill-node")
@@ -333,26 +368,86 @@ csvParser("userdata.csv", function(nodes) {
 			.classed("skill-node-container-selected", true);
 
 
-		//Function to highlight nodes chain
+		//Function to recursively highlight nodes chain
 		var highlightNodes = function(tNode) {
 			tNode.nodePointer.style("opacity", 1);	
 
-			if(tNode.links && tNode.links.length > 0) {	
-				//if there links for this node,
-				//iterate thru all links
-				tNode.links.forEach(function(link) {
-					link.linkPointer.style("opacity", 1);//Highlight link obj
-					highlightNodes(link.targetNode);//recurse this function on the node
-				});	
+			//iterate thru all parent links
+			for(var i = 0; i < tNode.parentLinks.length; i++) {
+				var currLink = tNode.parentLinks[i];
+
+				d3.select(currLink.linkObj).style("opacity", 1);	
+
+				highlightNodes(currLink.sourceNode);//recurse this function on the node
 			}
+
 		}
 
 		//Recursivelly highlight clicked node and its parents
 		highlightNodes(d);
 	}
 
+//End Functions Definition
 
 
+//Begin App Execution
+
+window.addEventListener("resize", onScreenSizeChange);
+window.addEventListener("load", onScreenSizeChange);
+
+if(SCREEN_DRAG)
+	svgMouseArea.call(zoomBehavior);
+
+svgMouseArea.on("click", clearAllSelections);
+
+
+csvParser("userdata.csv", function (nodes) {
+
+	//Nodes map to get nodes reference thru their names
+	var nodesMap = {}
+
+	//Links array to store all the links references
+	var linksArray = [];
+
+	//Populate nodes map and define necessary objects and arrays for all the nodes
+	for(var i = 0; i < nodes.length; i++) {
+		var currNode = nodes[i];
+
+		//If the node name has already been defined, proceed next iteration
+		//ON FINAL IMPLEMENTATION THIS MUST BE DONE WITH IDS TO AVOID TWO EQUAL NAMES REFERENCE TO THE SAME THING
+
+		//Set node reference to the nodesMap
+		nodesMap[currNode.name] = currNode;
+		
+		currNode.parentLinks = [];	//Define parent links array
+		currNode.childLinks = [];	//Define child links array
+
+		currNode.baseSkills = currNode.connections ? currNode.connections.split(";") : [];
+	}
+
+	//Populate nodes links with target references
+	for(var i = 0; i < nodes.length; i++) {
+		var currNode = nodes[i];
+
+		//Iterate thru the baseSkillsNames
+		for(var j = 0; j < currNode.baseSkills.length; j++) {
+			var baseSkill = currNode.baseSkills[j],
+				baseSkillNode = nodesMap[baseSkill];
+
+			//Create new link object
+			var newLink = { sourceNode: baseSkillNode, targetNode: currNode }
+			linksArray.push(newLink);
+
+			//push the line reference
+			currNode.parentLinks.push(newLink);
+
+			//push the line reference
+			baseSkillNode.childLinks.push(newLink);
+		}
+	}
+
+
+	//Create nodes
 	var skillNode = graphContainer.selectAll(".skill-node").data(nodes).enter()
 		.append("g")
 		/*.attr("id", function(d) {
@@ -369,7 +464,7 @@ csvParser("userdata.csv", function(nodes) {
 			if(d.y == undefined)
 				d.y = "100";
 
-			d.x = parseInt(d.x) + nodeOffset;
+			d.x = parseInt(d.x);
 			d.y = parseInt(d.y);
 
 			return "translate(" + d.x + " " + d.y +")";
@@ -423,20 +518,6 @@ csvParser("userdata.csv", function(nodes) {
 		});
 
 	//input symbol
-	/*skillNode.append("rect")
-		.attr("width", 10)
-		.attr("height", 10)
-		.attr("fill", "#aaa")
-		.attr("rx", 2)
-		.attr("ry", 2)
-		.attr("stroke", "#fff")
-		.attr("stroke-width", 2)
-		.attr("x", -5)
-		.attr("y", function(d) {
-			return (d.containerHeight - 10) / 2;
-		});*/
-
-	//input symbol
 	skillNode.append("path")
 		.attr("d", "M0,0 14,7 L0,14z")
 		.attr("fill", "#aaa")
@@ -461,45 +542,18 @@ csvParser("userdata.csv", function(nodes) {
 
 
 	//Create the links
+	var skillLink = graphContainer.selectAll(".skill-link").data(linksArray).enter()
+		.insert("path", ":first-child")
+		.attr("class", "skill-link")
+		.attr("d", function(d) {
+			d.linkObj = this;	//get the link obj reference
 
-	var createLink = d3.svg.diagonal()
-		.source(function(d) { return {"x":d.source.y, "y":d.source.x}; })            
-	    .target(function(d) { return {"x":d.target.y, "y":d.target.x}; })
-	    .projection(function(d) { return [d.y, d.x]; });
-
-
-
-	//Iterate thru all the skill nodes
-	skillNode.each(function(d) {
-		
-		if(d.links == undefined || d.links.length < 1)
-			return;
-
-		var linkSource = { x: d.x, y: d.y + 20 }
-
-		//Iterate thru the output links of the node
-		d.links.forEach(function(link) {
-
-			var linkTarget = { x: link.targetNode.x + link.targetNode.containerWidth, y: link.targetNode.y + 20 }
-
-
-			var linkPath = createLink({ source: linkSource, target: linkTarget });
-
-			var nodeLink = graphContainer.insert("path", ":first-child")
-				.attr("class", "skill-link")
-				.attr("d", linkPath)
-				.attr("fill", "none")
-				.attr("stroke", "#000")
-				.attr("stroke-width", 2);
-
-			//Get the link visual obj reference
-			link.linkPointer = nodeLink;
-
-		});
-
-	});
-
-
+			//Return the path created by the source and target nodes
+			return createLinkPath(d.sourceNode, d.targetNode);
+		})
+		.attr("fill", "none")
+		.attr("stroke", "#000")
+		.attr("stroke-width", 2);
 
 });
 
