@@ -3,7 +3,10 @@
 //-----------------------------------------------------------------------
 
 	//Store the current position of the nodes main container
-	var graphContPos = [0,0];	
+	var graphContPos = [0,0];
+
+	//Store the current position of the nodes main container
+	var graphScale = 1;	
 
 	//Store the size of the node modal dialog box
 	var dialogSize = [1200,800];
@@ -69,10 +72,12 @@
 	//Function to handle screen zooming/draging
 	var zoomBehavior = d3.behavior.zoom()
 		.scaleExtent([0.1, 1])
-		.on("zoom", function(z) {
+		.on("zoom", function() {
 
 			graphContainer.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+
 			graphContPos = d3.event.translate;
+			graphScale = d3.event.scale;
 
 			//Prevent clear selection due to sequential mouse click event on mouse move event
 			if(d3.event.sourceEvent && d3.event.sourceEvent.type == "mousemove" && false)
@@ -156,15 +161,16 @@
 
 		//Set Dark Screen
 		var darkScreen = d3.select("body").append("div")
-			.attr("class", "dark-screen");
+			.attr("class", "dark-screen")
+			.on("click", function() { return closeSkillModal(d); });
 
 		//Set Dialog Modal
 		var skillDialog = d3.select("body").append("div")
 			.attr("class", "skill-dialog")
-			.style("width", d.containerWidth + "px")
-			.style("height", d.containerHeight + "px")
-			.style("top", d.y + graphContPos[1] + "px")
-			.style("left", d.x + graphContPos[0] + "px");
+			.style("width", d.containerWidth * graphScale + "px")
+			.style("height", d.containerHeight * graphScale + "px")
+			.style("top", graphContPos[1] + d.y * graphScale + "px")
+			.style("left", graphContPos[0] + d.x * graphScale + "px");
 
 
 		//Set Dialog Modal Upper Bar and Close Button
@@ -259,7 +265,6 @@
 		if(d.internetRefs) {
 
 			var linksArray = d.internetRefs.split(";");
-			//console.log(linksArray);
 
 			skillDialog.append("div")
 				.attr("class", "skill-dialog-subtitle")
@@ -293,10 +298,10 @@
 		d3.select("body").style("position", "fixed");
 
 		d3.selectAll(".skill-dialog").transition().duration(transitionDuration)
-			.style("width", d.containerWidth + "px")
-			.style("height", d.containerHeight + "px")
-			.style("top", d.y + graphContPos[1] + "px")
-			.style("left", d.x + graphContPos[0] + "px")
+			.style("width", d.containerWidth * graphScale + "px")
+			.style("height", d.containerHeight * graphScale + "px")
+			.style("top", graphContPos[1] + d.y * graphScale + "px")
+			.style("left", graphContPos[0] + d.x * graphScale + "px")
 			.style("background-color", d.color)
 			.style("opacity", 0)
 			.remove();	//Remove the skill dialog
