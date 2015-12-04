@@ -1,0 +1,7 @@
+name,connections,color,x,y,description,wikipediaTitle,books,internetRefs,courses
+Computational Vision,Aforge.NET,lightblue,1350,260,,,,,
+Aforge.NET,C#,yellow,1150,260,,AForge.NET,,,
+C,Programming,yellow,550,260,,C_(programming_language),,,
+C#,C++,red,950,260,,C_Sharp_(programming_language),Visual C# 2010 Step By Step;Criação de Sistemas Supervisorios em Visual C# 2010 Express;Como Programar com ASP.NET e C#;TCP/IP Sockets in C# Practical Guide for Programmers,https://msdn.microsoft.com/,
+C++,C,yellow,750,260,,C%2B%2B,C++Complete Reference (3rd Ed.),,
+Programming,,yellow,350,260,,Computer_programming,Visual C# 2010 Step By Step;Criação de Sistemas Supervisorios em Visual C# 2010 Express ,,

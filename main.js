@@ -1,12 +1,17 @@
+//CREATE SYSTEM FOR SEARCH KNOWLEDGES AND THEY WILL PROJECT ON MY NODES
+//KEEP ORGANIZING THIS MAIN FILE, AND CREATE WAY FOR PROJECT NODES
+
+
+
 //-----------------------------------------------------------------------
 //					Begin Global Variables Definition
 //-----------------------------------------------------------------------
 
-	//Store the current position of the nodes main container
-	var graphContPos = [0,0];
+	//Store the current coordinate of the nodes container
+	var nodeContCoord = [0,0];
 
-	//Store the current position of the nodes main container
-	var graphScale = 1;	
+	//Store the current scale of the nodescontainer
+	var nodeContScale = 1;	
 
 	//Store the size of the node modal dialog box
 	var dialogSize = [1200,800];
@@ -26,15 +31,18 @@
 	//Flag showing whether a node is selected
 	var nodeSelected = false;
 
+	//Var to store the node selected border
+	var SELECT_BORDER = 2;
+
+	//Variable to store the skill modal reference
+	var skillDialog;
+
+	//Variable to store the dark screen div reference
+	var darkScreen;
+
 //-----------------------------------------------------------------------
 //					End Global Variables Definition
 //-----------------------------------------------------------------------
-
-
-
-
-//KEEP ORGANIZING THIS MAIN FILE, AND CREATE WAY FOR PROJECT NODES
-
 
 
 
@@ -47,6 +55,7 @@
 
 	//Append rectangle to receive mouse events such void click or screen zooming/moving
 	var svgMouseArea = svgContainer.append("rect")
+		//.attr("fill", "rgba(255,255,255,.6)")
 		.attr("fill", "#ddd")
 		.on("mousedown", function() {
 			d3.select(this).style("cursor", "move");		
@@ -76,8 +85,8 @@
 
 			graphContainer.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
 
-			graphContPos = d3.event.translate;
-			graphScale = d3.event.scale;
+			nodeContCoord = d3.event.translate;
+			nodeContScale = d3.event.scale;
 
 			//Prevent clear selection due to sequential mouse click event on mouse move event
 			if(d3.event.sourceEvent && d3.event.sourceEvent.type == "mousemove" && false)
@@ -157,21 +166,40 @@
 		//Set the body position to initial to show the y scroll 
 		d3.select("body").style("position", "initial");
 
-
-
-		//Set Dark Screen
-		var darkScreen = d3.select("body").append("div")
+		//Create dark screen
+		darkScreen = d3.select("body").append("div")
 			.attr("class", "dark-screen")
-			.on("click", function() { return closeSkillModal(d); });
+			.style("opacity", 1)
+			.on("click", function() { return closeSkillModal(d); })
+			;
 
-		//Set Dialog Modal
-		var skillDialog = d3.select("body").append("div")
+		//Show dark screen smoothly	
+		//darkScreen.transition().duration(transitionDuration)
+			//.style("opacity", 1);
+
+		//Create dialog modal 
+		skillDialog = d3.select("body").append("div")
 			.attr("class", "skill-dialog")
-			.style("width", d.containerWidth * graphScale + "px")
-			.style("height", d.containerHeight * graphScale + "px")
-			.style("top", graphContPos[1] + d.y * graphScale + "px")
-			.style("left", graphContPos[0] + d.x * graphScale + "px");
+			//.style("background-color", d.color)
+			//.style("opacity", .5)
+			.style("width", (d.containerWidth + SELECT_BORDER*2) * nodeContScale + "px")
+			.style("height", (d.containerHeight + SELECT_BORDER*2) * nodeContScale + "px")
+			.style("top", nodeContCoord[1] + (d.y - SELECT_BORDER) * nodeContScale + "px")
+			.style("left", nodeContCoord[0] + (d.x - SELECT_BORDER) * nodeContScale + "px");
 
+		//Show modal smoothly
+		skillDialog.transition().duration(transitionDuration)
+			.style("width", dialogSize[0] + "px")
+			.style("height", dialogSize[1] + "px")
+			.style("top", 50 + "px")
+			.style("left", (window.innerWidth - dialogSize[0]) / 2  + "px")
+			//.style("opacity", 1)
+			//.style("background-color", "#fff")
+			.each("end", function() { return loadModalContent(d); });
+	}
+
+	//Function to load modal content
+	var loadModalContent = function(d) {
 
 		//Set Dialog Modal Upper Bar and Close Button
 		skillDialog.append("div")
@@ -186,7 +214,6 @@
 		skillDialog.append("div")
 			.attr("class", "skill-dialog-title")
 			.text(d.name);
-
 
 		var skillDialogDesc = skillDialog.append("div")
 			.attr("class", "skill-dialog-content");
@@ -206,7 +233,7 @@
 			var reqUrl = "https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro=&explaintext=&titles=" + d.wikipediaTitle;
 
 			//Send REST request for wikipedia data
-			ajaxGetRequest(reqUrl, function(reqData) {
+			getRequest(reqUrl, function(reqData) {
 				//If there data is not valid, return
 				if(!reqData.query.pages)
 					return;
@@ -219,7 +246,7 @@
 					if(queryText) {
 						//If the query text is too long, trunc it
 						if(queryText.length > queryMaxLength)
-							queryText = queryText.substr(0,queryMaxLength) + "...";
+							queryText = queryText.substr(0, queryMaxLength) + "...";
 
 						//Add the wikipedia ref
 						queryText += " <a target='_blank' href='https://en.wikipedia.org/wiki/" + d.wikipediaTitle + "'>Read More</a>";
@@ -279,36 +306,29 @@
 				.text(function(linkRef){ return linkRef; });
 		}
 
-		//Show dark screen smoothly
-		darkScreen.transition().duration(transitionDuration)
-			.style("opacity", 1);
-
-		//Show modal smoothly
-		skillDialog.transition().duration(transitionDuration)
-			.style("width", dialogSize[0] + "px")
-			.style("height", dialogSize[1] + "px")
-			.style("top", 50 + "px")
-			.style("left", (window.innerWidth - dialogSize[0]) / 2  + "px")
-			.style("opacity", 1);
-
 	}
+
 
 	//Function to close the skill modal smoothly
 	var closeSkillModal = function(d) {
 		d3.select("body").style("position", "fixed");
 
-		d3.selectAll(".skill-dialog").transition().duration(transitionDuration)
-			.style("width", d.containerWidth * graphScale + "px")
-			.style("height", d.containerHeight * graphScale + "px")
-			.style("top", graphContPos[1] + d.y * graphScale + "px")
-			.style("left", graphContPos[0] + d.x * graphScale + "px")
-			.style("background-color", d.color)
-			.style("opacity", 0)
+		darkScreen.on("click", "");
+
+		skillDialog.selectAll("*").remove();
+
+		skillDialog.transition().duration(transitionDuration)
+			.style("width", (d.containerWidth + SELECT_BORDER*2) * nodeContScale + "px")
+			.style("height", (d.containerHeight + SELECT_BORDER*2) * nodeContScale + "px")
+			.style("top", nodeContCoord[1] + (d.y - SELECT_BORDER) * nodeContScale + "px")
+			.style("left", nodeContCoord[0] + (d.x - SELECT_BORDER) * nodeContScale + "px")
+			//.style("background-color", d.color)
+			//.style("opacity", .5)
 			.remove();	//Remove the skill dialog
 
 
-		d3.selectAll(".dark-screen").transition().duration(transitionDuration)
-			.style("opacity", 0)
+		darkScreen.transition().duration(transitionDuration)
+			//.style("opacity", 0)
 			.remove();
 		
 		//Ensure all dark screen are removed
@@ -345,13 +365,15 @@
 	}
 
 	//Function to wrap http get data via jquery ajax
-	var ajaxGetRequest = function(requestUrl, callback) {
-		return $.ajax({ 
+	var getRequest = function(requestUrl, callback) {
+		return $.get(requestUrl, {}, callback, "jsonp");
+
+		/*return $.ajax({ 
 			type: "GET",
 			dataType: "jsonp",
 			url: requestUrl,
 			success: callback
-		});
+		});*/
 	}
 
 	//Function to highlight all the path towards a specified node
@@ -425,6 +447,8 @@ svgMouseArea.on("click", clearAllSelections);
 
 csvParser(USER_PATH + "user-data.csv", function (nodes) {
 
+	console.log(nodes);
+
 	//Nodes map to get nodes reference thru their names
 	var nodesMap = {}
 
@@ -464,7 +488,6 @@ csvParser(USER_PATH + "user-data.csv", function (nodes) {
 			baseSkillNode.childLinks.push(newLink);
 		}
 	}
-
 
 	//Create nodes
 	var skillNode = graphContainer.selectAll(".skill-node").data(nodes).enter()
